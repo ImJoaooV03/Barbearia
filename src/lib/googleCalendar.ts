@@ -1,5 +1,3 @@
-import { toast } from "sonner";
-
 // Environment variables are the fallback
 const ENV_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const ENV_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;

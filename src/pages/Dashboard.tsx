@@ -1,9 +1,8 @@
 import { useStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, TrendingUp, Users, DollarSign, Clock, ArrowRight } from 'lucide-react';
+import { Calendar, TrendingUp, Users, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 
 export default function Dashboard() {

@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Plus, RefreshCw, Clock, Calendar as CalendarIcon, User, Scissors } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, RefreshCw } from 'lucide-react';
 import { format, addDays, isSameDay, setHours, setMinutes, addMinutes, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
