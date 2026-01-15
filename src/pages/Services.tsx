@@ -48,6 +48,7 @@ export default function ServicesAndTeam() {
       setNewService({ name: '', price: '', duration: '30' });
       toast.success("Serviço adicionado!");
     } catch (error) {
+      console.error(error);
       toast.error("Erro ao adicionar serviço.");
     }
   };
@@ -67,6 +68,7 @@ export default function ServicesAndTeam() {
       setNewProf({ name: '', commission: '0' });
       toast.success("Profissional adicionado!");
     } catch (error) {
+      console.error(error);
       toast.error("Erro ao adicionar profissional.");
     }
   };

@@ -86,6 +86,7 @@ export default function Settings() {
       toast.success("Chaves de API salvas! Agora você pode conectar.");
       setIsConfigOpen(false);
     } catch (error) {
+      console.error(error);
       toast.error("Erro ao salvar chaves.");
     }
   };
@@ -100,6 +101,7 @@ export default function Settings() {
     try {
       await connectGoogleCalendar();
     } catch (error) {
+      console.error("Google Connect Error:", error);
       // Error handled in store, but we ensure loading state is reset
     } finally {
       setIsGoogleLoading(false);

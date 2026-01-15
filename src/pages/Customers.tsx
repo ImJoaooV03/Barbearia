@@ -39,6 +39,7 @@ export default function Customers() {
       setNewCustomer({ name: '', phone: '', email: '' });
       toast.success("Cliente cadastrado!");
     } catch (error) {
+      console.error(error);
       toast.error("Erro ao cadastrar cliente.");
     }
   };

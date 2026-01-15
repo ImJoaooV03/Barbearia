@@ -55,6 +55,7 @@ export default function POS() {
       setCart([]);
       setSelectedCustomer('');
     } catch (error) {
+      console.error(error);
       toast.error("Erro ao finalizar venda.");
     }
   };

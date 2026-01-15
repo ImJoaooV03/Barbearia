@@ -86,6 +86,7 @@ export default function Agenda() {
       setIsNewAptOpen(false);
       toast.success("Agendamento criado com sucesso!");
     } catch (error) {
+      console.error(error);
       toast.error("Erro ao criar agendamento.");
     }
   };
@@ -111,6 +112,7 @@ export default function Agenda() {
       setIsEditAptOpen(false);
       toast.success("Agendamento atualizado!");
     } catch (error) {
+      console.error(error);
       toast.error("Erro ao atualizar agendamento.");
     }
   };
@@ -123,6 +125,7 @@ export default function Agenda() {
         setIsEditAptOpen(false);
         toast.success("Agendamento cancelado.");
       } catch (error) {
+        console.error(error);
         toast.error("Erro ao cancelar.");
       }
     }
