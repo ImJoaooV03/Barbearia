@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useStore } from '@/lib/store';
 import { Toaster } from '@/components/ui/sonner';
 
@@ -40,7 +40,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public Routes */}
+        {/* Public Routes - Updated to requested format */}
+        <Route path="/:slug/agendamento" element={<PublicBooking />} />
+        {/* Legacy/Short route redirect */}
         <Route path="/book/:slug" element={<PublicBooking />} />
         
         {/* Auth Routes */}

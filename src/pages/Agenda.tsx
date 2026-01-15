@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Appointment } from '@/types';
+import { Appointment, AppointmentStatus } from '@/types';
 
 export default function Agenda() {
   const { 
@@ -25,12 +25,12 @@ export default function Agenda() {
   
   const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
 
-  // New/Edit Appointment Form State
   const [formData, setFormData] = useState({
     customer_id: '',
     professional_id: '',
     service_id: '',
-    time: '10:00'
+    time: '10:00',
+    status: 'confirmed' as AppointmentStatus
   });
 
   useEffect(() => {
@@ -47,7 +47,7 @@ export default function Agenda() {
   };
 
   const openNewAptModal = () => {
-    setFormData({ customer_id: '', professional_id: '', service_id: '', time: '10:00' });
+    setFormData({ customer_id: '', professional_id: '', service_id: '', time: '10:00', status: 'confirmed' });
     setIsNewAptOpen(true);
   };
 
@@ -57,7 +57,8 @@ export default function Agenda() {
       customer_id: apt.customer_id,
       professional_id: apt.professional_id,
       service_id: apt.service_id,
-      time: format(new Date(apt.start_time), 'HH:mm')
+      time: format(new Date(apt.start_time), 'HH:mm'),
+      status: apt.status
     });
     setIsEditAptOpen(true);
   };
@@ -97,7 +98,6 @@ export default function Agenda() {
     const service = services.find(s => s.id === formData.service_id);
     const [hours, minutes] = formData.time.split(':').map(Number);
     
-    // Maintain original date, just update time
     const originalDate = new Date(selectedApt.start_time);
     const start = setMinutes(setHours(originalDate, hours), minutes);
     const end = addMinutes(start, service?.duration_minutes || 30);
@@ -107,7 +107,8 @@ export default function Agenda() {
         professional_id: formData.professional_id,
         service_id: formData.service_id,
         start_time: start.toISOString(),
-        end_time: end.toISOString()
+        end_time: end.toISOString(),
+        status: formData.status
       });
       setIsEditAptOpen(false);
       toast.success("Agendamento atualizado!");
@@ -131,12 +132,10 @@ export default function Agenda() {
     }
   };
 
-  // Filter internal appointments for selected date
   const dailyAppointments = appointments.filter(a => 
     isSameDay(new Date(a.start_time), selectedDate) && a.status !== 'cancelled'
   );
 
-  // Filter Google events for selected date
   const dailyGoogleEvents = googleEvents.filter(e => {
     if (!e.start.dateTime) return false; 
     return isSameDay(parseISO(e.start.dateTime), selectedDate);
@@ -153,7 +152,7 @@ export default function Agenda() {
             <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, -1))}>
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <div className="px-4 font-medium min-w-[140px] text-center">
+            <div className="px-4 font-medium min-w-[140px] text-center capitalize">
               {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
             </div>
             <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, 1))}>
@@ -221,7 +220,7 @@ export default function Agenda() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Detalhes do Agendamento</DialogTitle>
-              <DialogDescription>Gerencie ou cancele este agendamento.</DialogDescription>
+              <DialogDescription>Gerencie o status ou cancele este agendamento.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
@@ -230,8 +229,33 @@ export default function Agenda() {
                   {customers.find(c => c.id === selectedApt?.customer_id)?.name}
                 </div>
               </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Status</Label>
+                  <Select 
+                    value={formData.status} 
+                    onValueChange={(v) => setFormData({...formData, status: v as AppointmentStatus})}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="requested">Solicitado</SelectItem>
+                      <SelectItem value="confirmed">Confirmado</SelectItem>
+                      <SelectItem value="waiting">Aguardando</SelectItem>
+                      <SelectItem value="in_progress">Em Atendimento</SelectItem>
+                      <SelectItem value="finished">Finalizado</SelectItem>
+                      <SelectItem value="no_show">Não Compareceu</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                   <Label>Horário</Label>
+                   <Input type="time" value={formData.time} onChange={(e) => setFormData({...formData, time: e.target.value})} />
+                </div>
+              </div>
+
               <div className="grid gap-2">
-                <Label>Profissional (Reagendar)</Label>
+                <Label>Profissional</Label>
                 <Select 
                   value={formData.professional_id} 
                   onValueChange={(v) => setFormData({...formData, professional_id: v})}
@@ -254,22 +278,16 @@ export default function Agenda() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2">
-                <Label>Horário</Label>
-                <Input type="time" value={formData.time} onChange={(e) => setFormData({...formData, time: e.target.value})} />
-              </div>
             </div>
             <DialogFooter className="flex justify-between sm:justify-between">
-              <Button variant="destructive" onClick={handleCancelAppointment}>Cancelar Agendamento</Button>
+              <Button variant="destructive" onClick={handleCancelAppointment}>Cancelar</Button>
               <Button onClick={handleUpdateAppointment}>Salvar Alterações</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Calendar Grid */}
       <div className="flex-1 border rounded-lg bg-card overflow-hidden flex flex-col">
-        {/* Header: Professionals Columns */}
         <div className="flex border-b">
           <div className="w-16 flex-shrink-0 border-r bg-muted/30"></div>
           {professionals.length === 0 ? (
@@ -287,24 +305,19 @@ export default function Agenda() {
           )}
         </div>
 
-        {/* Body: Time Slots */}
         <div className="flex-1 overflow-y-auto relative">
           {timeSlots.map(hour => (
             <div key={hour} className="flex min-h-[100px] border-b last:border-b-0">
-              {/* Time Label */}
               <div className="w-16 flex-shrink-0 border-r flex flex-col items-center justify-start py-2 bg-muted/5 text-xs text-muted-foreground font-medium">
                 {String(hour).padStart(2, '0')}:00
               </div>
 
-              {/* Columns for each professional */}
               {professionals.map(prof => {
-                // Internal Appointments
                 const profApts = dailyAppointments.filter(a => {
                   const aptDate = new Date(a.start_time);
                   return a.professional_id === prof.id && aptDate.getHours() === hour;
                 });
 
-                // Google Events (Overlay on ALL professionals for MVP)
                 const gEvents = dailyGoogleEvents.filter(e => {
                   const eDate = parseISO(e.start.dateTime);
                   return eDate.getHours() === hour;
@@ -313,7 +326,6 @@ export default function Agenda() {
                 return (
                   <div key={prof.id} className="flex-1 border-r last:border-r-0 relative p-1 group">
                     
-                    {/* Render Google Events */}
                     {gEvents.map(ge => {
                       const start = parseISO(ge.start.dateTime);
                       const end = parseISO(ge.end.dateTime);
@@ -334,7 +346,6 @@ export default function Agenda() {
                       )
                     })}
 
-                    {/* Render Internal Appointments */}
                     {profApts.map(apt => {
                       const service = services.find(s => s.id === apt.service_id);
                       const customer = customers.find(c => c.id === apt.customer_id);
@@ -347,6 +358,7 @@ export default function Agenda() {
                             absolute left-1 right-1 rounded-md p-2 text-xs border shadow-sm cursor-pointer hover:brightness-110 transition-all z-10 flex flex-col justify-center
                             ${apt.status === 'confirmed' ? 'bg-primary text-primary-foreground border-primary' : 
                               apt.status === 'finished' ? 'bg-zinc-700 text-zinc-300 border-zinc-600' : 
+                              apt.status === 'in_progress' ? 'bg-purple-600 text-white border-purple-500' :
                               'bg-secondary text-secondary-foreground border-border'}
                           `}
                           style={{

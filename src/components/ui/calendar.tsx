@@ -34,8 +34,9 @@ function Calendar({
       )}
       captionLayout={captionLayout}
       formatters={{
+        // Force PT-BR locale for month dropdowns
         formatMonthDropdown: (date) =>
-          date.toLocaleString("default", { month: "short" }),
+          date.toLocaleString("pt-BR", { month: "short" }),
         ...formatters,
       }}
       classNames={{

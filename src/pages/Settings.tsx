@@ -29,7 +29,6 @@ export default function Settings() {
 
   const isConfigured = isGoogleConfigured();
 
-  // FIX: Eagerly initialize Google API to prevent browser popup blocking
   useEffect(() => {
     if (isConfigured && !googleConnected) {
       initGoogleAPI().catch(err => console.error("Failed to eager init Google API", err));
@@ -102,7 +101,6 @@ export default function Settings() {
       await connectGoogleCalendar();
     } catch (error) {
       console.error("Google Connect Error:", error);
-      // Error handled in store, but we ensure loading state is reset
     } finally {
       setIsGoogleLoading(false);
     }
@@ -114,7 +112,8 @@ export default function Settings() {
     }
   };
 
-  const publicUrl = `${window.location.origin}/book/${tenant?.slug}`;
+  // New route format
+  const publicUrl = `${window.location.origin}/${tenant?.slug}/agendamento`;
 
   const copyLink = () => {
     navigator.clipboard.writeText(publicUrl);
@@ -122,10 +121,91 @@ export default function Settings() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-4xl pb-10">
       <div className="flex flex-col gap-2">
         <h2 className="text-3xl font-bold tracking-tight">Configurações</h2>
         <p className="text-muted-foreground">Gerencie os dados da sua barbearia e preferências.</p>
+      </div>
+
+      {/* Dados da Barbearia - Replicating the Image Style */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Dados da Barbearia</CardTitle>
+          <CardDescription>Informações visíveis para seus clientes.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label className="text-base">Nome do Estabelecimento</Label>
+            <Input 
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              className="h-11"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label className="text-base">Link de Agendamento (Slug)</Label>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <div className="flex rounded-md shadow-sm ring-1 ring-inset ring-input focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
+                  <span className="flex select-none items-center pl-3 text-muted-foreground sm:text-sm">
+                    {window.location.origin}/
+                  </span>
+                  <input
+                    type="text"
+                    value={formData.slug}
+                    onChange={(e) => setFormData({...formData, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
+                    className="block flex-1 border-0 bg-transparent py-2.5 pl-1 text-foreground placeholder:text-muted-foreground focus:ring-0 sm:text-sm sm:leading-6"
+                  />
+                  <span className="flex select-none items-center pr-3 text-muted-foreground sm:text-sm">
+                    /agendamento
+                  </span>
+                </div>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Este é o link que você enviará para seus clientes agendarem.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+             <div className="flex rounded-md shadow-sm">
+                <div className="relative flex-grow focus-within:z-10">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <ExternalLink className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  </div>
+                  <input
+                    type="text"
+                    readOnly
+                    value={publicUrl}
+                    className="block w-full rounded-none rounded-l-md border-0 py-2.5 pl-10 text-muted-foreground ring-1 ring-inset ring-input placeholder:text-muted-foreground focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 bg-muted/20"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={copyLink}
+                  className="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-md px-3 py-2 text-sm font-semibold text-foreground ring-1 ring-inset ring-input hover:bg-muted"
+                >
+                  <Copy className="-ml-0.5 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  Copiar
+                </button>
+                <a 
+                  href={publicUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="relative ml-2 inline-flex items-center gap-x-1.5 rounded-md px-3 py-2 text-sm font-semibold text-foreground ring-1 ring-inset ring-input hover:bg-muted"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-end">
+        <Button onClick={handleSave} disabled={isLoading} size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 min-w-[150px]">
+          {isLoading ? 'Salvando...' : 'Salvar Alterações'}
+        </Button>
       </div>
 
       {/* Google Calendar Integration */}
@@ -157,11 +237,6 @@ export default function Settings() {
                   ? "Sua agenda está sincronizada. Novos agendamentos aparecerão no seu Google Calendar." 
                   : "Conecte para sincronizar sua agenda automaticamente e evitar conflitos de horário."}
               </p>
-              {!isConfigured && !googleConnected && (
-                <p className="text-xs text-yellow-500 flex items-center gap-1 mt-1">
-                  <AlertCircle className="w-3 h-3" /> Configuração de API pendente.
-                </p>
-              )}
             </div>
             
             {googleConnected ? (
@@ -183,7 +258,6 @@ export default function Settings() {
             )}
           </div>
 
-          {/* Advanced Config Section - Only show if not configured or explicitly opened */}
           <Collapsible open={isConfigOpen} onOpenChange={setIsConfigOpen} className="border rounded-md bg-background/50">
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm" className="w-full flex justify-between px-4 py-2 text-xs text-muted-foreground hover:text-foreground">
@@ -196,7 +270,6 @@ export default function Settings() {
                 <strong>Atenção:</strong> Esta área é para configuração técnica. Se você é o dono da barbearia, peça ao suporte as chaves de integração ou insira suas próprias chaves do Google Cloud Console.
               </div>
 
-              {/* Step by Step Guide */}
               <Accordion type="single" collapsible className="w-full border rounded-md bg-background">
                 <AccordionItem value="guide" className="border-none">
                   <AccordionTrigger className="px-4 py-2 text-sm hover:no-underline">
@@ -207,31 +280,9 @@ export default function Settings() {
                   </AccordionTrigger>
                   <AccordionContent className="px-4 pb-4 text-muted-foreground space-y-3">
                     <ol className="list-decimal list-inside space-y-2 text-xs sm:text-sm">
-                      <li>
-                        Acesse o <a href="https://console.cloud.google.com/" target="_blank" rel="noreferrer" className="text-primary hover:underline">Google Cloud Console</a> e crie um novo projeto.
-                      </li>
-                      <li>
-                        No menu lateral, vá em <strong>APIs e Serviços &gt; Biblioteca</strong>. Pesquise por <strong>"Google Calendar API"</strong> e clique em <strong>Ativar</strong>.
-                      </li>
-                      <li>
-                        Vá em <strong>Tela de permissão OAuth</strong>. Selecione <strong>Externo</strong>, preencha o nome do app e emails de suporte. Salve e continue.
-                      </li>
-                      <li>
-                        Vá em <strong>Credenciais</strong> e clique em <strong>Criar Credenciais</strong>:
-                        <ul className="list-disc list-inside pl-4 mt-1 space-y-1">
-                          <li>
-                            <strong>Chave de API:</strong> Copie a chave gerada e cole no campo "Google API Key" abaixo.
-                          </li>
-                          <li>
-                            <strong>ID do cliente OAuth:</strong> Escolha "Aplicativo da Web".
-                            <div className="mt-1 p-2 bg-muted rounded border border-border">
-                              <span className="font-semibold">Importante:</span> Em "Origens JavaScript autorizadas", adicione exatamente a URL do seu sistema: <br/>
-                              <code className="text-xs bg-zinc-950 p-0.5 rounded text-zinc-300">{window.location.origin}</code>
-                            </div>
-                            Copie o "ID do Cliente" e cole no campo "Google Client ID" abaixo.
-                          </li>
-                        </ul>
-                      </li>
+                      <li>Acesse o Google Cloud Console e crie um novo projeto.</li>
+                      <li>Ative a "Google Calendar API".</li>
+                      <li>Crie credenciais OAuth (Web Application) e adicione <code>{window.location.origin}</code> nas origens autorizadas.</li>
                     </ol>
                   </AccordionContent>
                 </AccordionItem>
@@ -242,7 +293,6 @@ export default function Settings() {
                 <Input 
                   value={configData.clientId} 
                   onChange={(e) => setConfigData({...configData, clientId: e.target.value})}
-                  placeholder="ex: 123456-abcdef.apps.googleusercontent.com"
                   className="h-8 text-xs"
                 />
               </div>
@@ -251,7 +301,6 @@ export default function Settings() {
                 <Input 
                   value={configData.apiKey} 
                   onChange={(e) => setConfigData({...configData, apiKey: e.target.value})}
-                  placeholder="ex: AIzaSy..."
                   className="h-8 text-xs"
                 />
               </div>
@@ -260,59 +309,6 @@ export default function Settings() {
           </Collapsible>
         </CardContent>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Dados da Barbearia</CardTitle>
-          <CardDescription>Informações visíveis para seus clientes.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-2">
-            <Label>Nome do Estabelecimento</Label>
-            <Input 
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label>Link de Agendamento (Slug)</Label>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground text-sm whitespace-nowrap hidden md:block">
-                {window.location.origin}/book/
-              </span>
-              <Input 
-                value={formData.slug}
-                onChange={(e) => setFormData({...formData, slug: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Este é o link que você enviará para seus clientes agendarem.
-            </p>
-          </div>
-
-          <div className="p-4 bg-muted/30 rounded-lg border flex items-center justify-between gap-4 mt-2">
-            <div className="flex-1 truncate text-sm text-muted-foreground">
-              {publicUrl}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={copyLink}>
-                <Copy className="w-4 h-4 mr-2" /> Copiar
-              </Button>
-              <Button variant="ghost" size="icon" asChild>
-                <a href={publicUrl} target="_blank" rel="noreferrer">
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={isLoading} className="bg-primary text-primary-foreground hover:bg-primary/90">
-          {isLoading ? 'Salvando...' : 'Salvar Alterações'}
-        </Button>
-      </div>
     </div>
   );
 }

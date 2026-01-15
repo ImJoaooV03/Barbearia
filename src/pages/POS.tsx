@@ -6,11 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Trash2, ShoppingCart, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
+import { PaymentMethod } from '@/types';
 
 export default function POS() {
   const { services, products, customers, createOrder, tenant } = useStore();
   
   const [selectedCustomer, setSelectedCustomer] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('credit_card');
   const [cart, setCart] = useState<Array<{
     id: string;
     type: 'service' | 'product';
@@ -48,7 +50,7 @@ export default function POS() {
         discount_amount: 0,
         final_amount: total,
         status: 'paid',
-        payment_method: 'credit_card' // Hardcoded for MVP
+        payment_method: paymentMethod
       }, cart);
 
       toast.success(`Venda de R$ ${total.toFixed(2)} finalizada!`);
@@ -62,7 +64,6 @@ export default function POS() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-8rem)]">
-      {/* Left: Product/Service Selection */}
       <div className="lg:col-span-2 space-y-6 overflow-y-auto pr-2">
         <Card>
           <CardHeader>
@@ -105,7 +106,6 @@ export default function POS() {
         </Card>
       </div>
 
-      {/* Right: Cart & Checkout */}
       <div className="lg:col-span-1">
         <Card className="h-full flex flex-col border-primary/20 shadow-lg shadow-primary/5">
           <CardHeader className="border-b bg-muted/20">
@@ -115,13 +115,25 @@ export default function POS() {
             </CardTitle>
           </CardHeader>
           
-          <div className="p-4 border-b">
+          <div className="p-4 border-b space-y-3">
             <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecionar Cliente (Opcional)" />
               </SelectTrigger>
               <SelectContent>
                 {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+
+            <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Forma de Pagamento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
+                <SelectItem value="debit_card">Cartão de Débito</SelectItem>
+                <SelectItem value="pix">Pix</SelectItem>
+                <SelectItem value="cash">Dinheiro</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -145,7 +157,9 @@ export default function POS() {
                     <TableRow key={idx}>
                       <TableCell className="font-medium">
                         {item.name}
-                        <div className="text-xs text-muted-foreground capitalize">{item.type}</div>
+                        <div className="text-xs text-muted-foreground capitalize">
+                          {item.type === 'service' ? 'Serviço' : 'Produto'}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">{item.price.toFixed(2)}</TableCell>
                       <TableCell>

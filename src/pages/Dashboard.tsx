@@ -3,12 +3,27 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, TrendingUp, Users, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
+import { AppointmentStatus } from '@/types';
+
+// Helper for status translation
+const getStatusLabel = (status: AppointmentStatus) => {
+  switch (status) {
+    case 'requested': return { label: 'Solicitado', class: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' };
+    case 'confirmed': return { label: 'Confirmado', class: 'bg-green-500/10 text-green-500 border-green-500/20' };
+    case 'waiting': return { label: 'Aguardando', class: 'bg-blue-500/10 text-blue-500 border-blue-500/20' };
+    case 'in_progress': return { label: 'Em Atendimento', class: 'bg-purple-500/10 text-purple-500 border-purple-500/20' };
+    case 'finished': return { label: 'Finalizado', class: 'bg-zinc-500/10 text-zinc-500 border-zinc-500/20' };
+    case 'cancelled': return { label: 'Cancelado', class: 'bg-red-500/10 text-red-500 border-red-500/20' };
+    case 'no_show': return { label: 'Não Compareceu', class: 'bg-red-900/10 text-red-700 border-red-900/20' };
+    default: return { label: status, class: 'bg-zinc-500/10 text-zinc-500' };
+  }
+};
 
 export default function Dashboard() {
   const { appointments, customers, services } = useStore();
 
-  // Simple stats calculation
   const todayAppointments = appointments.filter(a => 
     new Date(a.start_time).toDateString() === new Date().toDateString()
   );
@@ -33,7 +48,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -55,7 +69,7 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{todayAppointments.length}</div>
             <p className="text-xs text-muted-foreground">
-              4 confirmados, 1 pendente
+              {todayAppointments.filter(a => a.status === 'confirmed').length} confirmados
             </p>
           </CardContent>
         </Card>
@@ -86,7 +100,6 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        {/* Next Appointments */}
         <Card className="col-span-4">
           <CardHeader>
             <CardTitle>Próximos Agendamentos</CardTitle>
@@ -99,6 +112,8 @@ export default function Dashboard() {
                 todayAppointments.map((apt) => {
                   const customer = customers.find(c => c.id === apt.customer_id);
                   const service = services.find(s => s.id === apt.service_id);
+                  const statusInfo = getStatusLabel(apt.status);
+                  
                   return (
                     <div key={apt.id} className="flex items-center justify-between p-4 border rounded-lg bg-card/50">
                       <div className="flex items-center gap-4">
@@ -111,12 +126,8 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                         <span className={`px-2 py-1 text-xs rounded-full border ${
-                           apt.status === 'confirmed' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
-                           apt.status === 'finished' ? 'bg-zinc-500/10 text-zinc-500 border-zinc-500/20' :
-                           'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
-                         }`}>
-                           {apt.status === 'confirmed' ? 'Confirmado' : apt.status === 'finished' ? 'Finalizado' : 'Solicitado'}
+                         <span className={`px-2 py-1 text-xs rounded-full border ${statusInfo.class}`}>
+                           {statusInfo.label}
                          </span>
                       </div>
                     </div>
@@ -127,7 +138,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Quick Actions / Notifications */}
         <Card className="col-span-3">
           <CardHeader>
             <CardTitle>Atalhos & Alertas</CardTitle>
