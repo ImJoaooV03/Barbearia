@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { format, addDays, setHours, setMinutes, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { CheckCircle2, ChevronLeft, ChevronRight, Clock, MapPin, Scissors, User, Calendar as CalendarIcon, Phone } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Clock, MapPin, Scissors, User, Calendar as CalendarIcon, Phone, AlertCircle } from 'lucide-react';
 import { Tenant, Service, Professional } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -62,7 +62,7 @@ export default function PublicBooking() {
 
       } catch (error) {
         console.error(error);
-        toast.error("Barbearia não encontrada ou link inválido.");
+        // Toast is handled, but we also set loading false to show error UI
       } finally {
         setLoading(false);
       }
@@ -145,7 +145,17 @@ export default function PublicBooking() {
     );
   }
 
-  if (!tenant) return null;
+  if (!tenant) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 text-zinc-100 p-4 text-center">
+        <AlertCircle className="w-12 h-12 text-destructive mb-4" />
+        <h1 className="text-2xl font-bold mb-2">Barbearia não encontrada</h1>
+        <p className="text-zinc-400 max-w-md">
+          O link que você acessou parece estar incorreto ou a barbearia não existe mais. Verifique o endereço digitado.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center py-8 px-4 sm:px-6 lg:px-8">
