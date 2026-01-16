@@ -188,15 +188,24 @@ const ensureAuth = async () => {
   }
 };
 
-export const listUpcomingEvents = async () => {
+// Updated to accept optional time range, defaulting to a wide window
+export const listEvents = async (timeMin?: string, timeMax?: string) => {
   await ensureAuth();
+  
+  // Default: From 30 days ago to 90 days in future if not specified
+  const defaultMin = new Date();
+  defaultMin.setDate(defaultMin.getDate() - 30);
+  
+  const defaultMax = new Date();
+  defaultMax.setDate(defaultMax.getDate() - 90);
+
   try {
     const response = await window.gapi.client.calendar.events.list({
       'calendarId': 'primary',
-      'timeMin': (new Date()).toISOString(),
+      'timeMin': timeMin || defaultMin.toISOString(),
       'showDeleted': false,
       'singleEvents': true,
-      'maxResults': 100, // Increased limit
+      'maxResults': 250,
       'orderBy': 'startTime',
     });
     return response.result.items;
@@ -208,6 +217,9 @@ export const listUpcomingEvents = async () => {
     throw err;
   }
 };
+
+// Legacy alias for compatibility
+export const listUpcomingEvents = () => listEvents((new Date()).toISOString());
 
 export const createGoogleEvent = async (event: {
   summary: string;

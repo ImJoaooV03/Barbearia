@@ -5,7 +5,7 @@ import {
 } from '@/types';
 import { toast } from 'sonner';
 import { 
-  initGoogleAPI, listUpcomingEvents, createGoogleEvent, 
+  initGoogleAPI, listEvents, createGoogleEvent, 
   deleteGoogleEvent, updateGoogleEvent, checkConnection, handleGoogleLogin, clearToken, isGoogleConfigured, setGoogleConfig
 } from './googleCalendar';
 import { RealtimeChannel } from '@supabase/supabase-js';
@@ -310,7 +310,15 @@ export const useStore = create<AppState>((set, get) => ({
   syncGoogleEvents: async () => {
     try {
       if (!get().googleConnected) return;
-      const events = await listUpcomingEvents();
+      
+      // Fetch events from 30 days ago to 60 days ahead to cover calendar views
+      const minDate = new Date();
+      minDate.setDate(minDate.getDate() - 30);
+      
+      const maxDate = new Date();
+      maxDate.setDate(maxDate.getDate() + 60);
+
+      const events = await listEvents(minDate.toISOString(), maxDate.toISOString());
       set({ googleEvents: events });
     } catch (error: any) {
       console.error("Sync Error:", error);
@@ -383,12 +391,41 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   updateAppointmentStatus: async (id, status) => {
+    // 1. Update Supabase first
     const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
     if (error) throw error;
-    
-    if (status === 'cancelled' || status === 'no_show') {
-      const apt = get().appointments.find(a => a.id === id);
-      if (apt?.google_event_id && get().googleConnected) {
+
+    const apt = get().appointments.find(a => a.id === id);
+    if (!apt) return;
+
+    // 2. Handle Google Calendar Logic
+    if (get().googleConnected) {
+      // Case A: Confirming a request -> Create Event
+      if (status === 'confirmed' && !apt.google_event_id) {
+        try {
+          const service = get().services.find(s => s.id === apt.service_id);
+          const customer = get().customers.find(c => c.id === apt.customer_id);
+          const professional = get().professionals.find(p => p.id === apt.professional_id);
+
+          const gEvent = await createGoogleEvent({
+            summary: `BarberOS: ${service?.name || 'Serviço'} - ${customer?.name || 'Cliente'}`,
+            description: `Profissional: ${professional?.name}\nStatus: Confirmado`,
+            start: apt.start_time,
+            end: apt.end_time
+          });
+
+          // Save Google ID back to Supabase
+          await supabase.from('appointments').update({ google_event_id: gEvent.id }).eq('id', id);
+          
+          toast.success("Sincronizado com Google Calendar!");
+        } catch (e) {
+          console.error("Google Sync Error", e);
+          toast.warning("Confirmado, mas falha ao criar no Google Calendar.");
+        }
+      }
+      
+      // Case B: Cancelling -> Delete Event
+      if ((status === 'cancelled' || status === 'no_show') && apt.google_event_id) {
         await deleteGoogleEvent(apt.google_event_id);
       }
     }
