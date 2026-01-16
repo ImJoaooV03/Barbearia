@@ -17,6 +17,7 @@ import Finance from '@/pages/Finance';
 import Settings from '@/pages/Settings';
 import PublicBooking from '@/pages/PublicBooking';
 import Marketing from '@/pages/Marketing';
+import Reports from '@/pages/Reports';
 
 // Placeholder Pages for MVP
 const Placeholder = ({ title }: { title: string }) => (
@@ -58,7 +59,7 @@ function App() {
             <Route path="finance" element={<Finance />} />
             <Route path="marketing" element={<Marketing />} />
             <Route path="settings" element={<Settings />} />
-            <Route path="reports" element={<Placeholder title="Relatórios" />} />
+            <Route path="reports" element={<Reports />} />
           </Route>
         )}
       </Routes>

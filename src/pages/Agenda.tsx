@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Plus, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, RefreshCw, Check, X } from 'lucide-react';
 import { format, addDays, isSameDay, setHours, setMinutes, addMinutes, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -132,6 +132,17 @@ export default function Agenda() {
     }
   };
 
+  const handleQuickApprove = async () => {
+    if (!selectedApt) return;
+    try {
+      await updateAppointmentStatus(selectedApt.id, 'confirmed');
+      setIsEditAptOpen(false);
+      toast.success("Agendamento confirmado!");
+    } catch (error) {
+      toast.error("Erro ao confirmar.");
+    }
+  };
+
   const dailyAppointments = appointments.filter(a => 
     isSameDay(new Date(a.start_time), selectedDate) && a.status !== 'cancelled'
   );
@@ -222,6 +233,27 @@ export default function Agenda() {
               <DialogTitle>Detalhes do Agendamento</DialogTitle>
               <DialogDescription>Gerencie o status ou cancele este agendamento.</DialogDescription>
             </DialogHeader>
+            
+            {selectedApt?.status === 'requested' && (
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-2">
+                <p className="text-sm text-yellow-500 font-medium mb-3 flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
+                  </span>
+                  Solicitação Pendente
+                </p>
+                <div className="flex gap-2">
+                  <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={handleQuickApprove}>
+                    <Check className="w-4 h-4 mr-2" /> Aprovar
+                  </Button>
+                  <Button className="flex-1 bg-red-600 hover:bg-red-700 text-white" onClick={handleCancelAppointment}>
+                    <X className="w-4 h-4 mr-2" /> Recusar
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label>Cliente</Label>
@@ -359,6 +391,7 @@ export default function Agenda() {
                             ${apt.status === 'confirmed' ? 'bg-primary text-primary-foreground border-primary' : 
                               apt.status === 'finished' ? 'bg-zinc-700 text-zinc-300 border-zinc-600' : 
                               apt.status === 'in_progress' ? 'bg-purple-600 text-white border-purple-500' :
+                              apt.status === 'requested' ? 'bg-yellow-500 text-yellow-950 border-yellow-600 animate-pulse' :
                               'bg-secondary text-secondary-foreground border-border'}
                           `}
                           style={{

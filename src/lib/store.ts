@@ -8,6 +8,7 @@ import {
   initGoogleAPI, listUpcomingEvents, createGoogleEvent, 
   deleteGoogleEvent, updateGoogleEvent, checkConnection, handleGoogleLogin, clearToken, isGoogleConfigured, setGoogleConfig
 } from './googleCalendar';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface AppState {
   tenant: Tenant | null;
@@ -18,17 +19,20 @@ interface AppState {
   appointments: Appointment[];
   products: Product[];
   orders: Order[];
-  campaigns: Campaign[]; // New
+  campaigns: Campaign[];
   
   // Google Calendar State
   googleConnected: boolean;
   googleEvents: GoogleCalendarEvent[];
   
   isLoading: boolean;
+  realtimeSubscription: RealtimeChannel | null;
   
   // Actions
   initialize: () => Promise<void>;
   fetchData: () => Promise<void>;
+  subscribeToChanges: () => void;
+  unsubscribeFromChanges: () => void;
   
   // Google Actions
   connectGoogleCalendar: () => Promise<void>;
@@ -74,6 +78,7 @@ export const useStore = create<AppState>((set, get) => ({
   googleEvents: [],
   
   isLoading: true,
+  realtimeSubscription: null,
 
   initialize: async () => {
     try {
@@ -113,6 +118,9 @@ export const useStore = create<AppState>((set, get) => ({
 
           await get().fetchData();
           
+          // Iniciar Realtime
+          get().subscribeToChanges();
+          
           if (get().googleConnected) {
             get().syncGoogleEvents().catch(() => {
               set({ googleConnected: false });
@@ -134,6 +142,7 @@ export const useStore = create<AppState>((set, get) => ({
         const { user } = get();
         if (!user) await get().initialize(); 
       } else if (event === 'SIGNED_OUT') {
+        get().unsubscribeFromChanges();
         set({ 
           user: null, tenant: null, services: [], professionals: [], 
           customers: [], appointments: [], products: [], orders: [], campaigns: [],
@@ -148,7 +157,6 @@ export const useStore = create<AppState>((set, get) => ({
     if (!tenant) return;
 
     try {
-      // Parallel fetching for performance
       const [s, p, c, a, prod, o] = await Promise.all([
         supabase.from('services').select('*').eq('tenant_id', tenant.id),
         supabase.from('professionals').select('*').eq('tenant_id', tenant.id),
@@ -156,10 +164,8 @@ export const useStore = create<AppState>((set, get) => ({
         supabase.from('appointments').select('*').eq('tenant_id', tenant.id),
         supabase.from('products').select('*').eq('tenant_id', tenant.id),
         supabase.from('orders').select('*').eq('tenant_id', tenant.id).order('created_at', { ascending: false }),
-        // Campaigns might not exist in DB yet, so we handle it gracefully if table missing
       ]);
 
-      // Try fetching campaigns separately to avoid breaking everything if table is missing
       let campaignsData: Campaign[] = [];
       try {
         const { data } = await supabase.from('campaigns').select('*').eq('tenant_id', tenant.id).order('created_at', { ascending: false });
@@ -180,6 +186,76 @@ export const useStore = create<AppState>((set, get) => ({
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Erro ao carregar dados.");
+    }
+  },
+
+  subscribeToChanges: () => {
+    const { tenant, realtimeSubscription } = get();
+    if (!tenant) return;
+    
+    // Evita duplicar subscrições
+    if (realtimeSubscription) return;
+
+    console.log("Iniciando conexão Realtime...");
+
+    const channel = supabase.channel('db-changes')
+      // Listen to Appointments
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'appointments', filter: `tenant_id=eq.${tenant.id}` },
+        (payload) => {
+          const current = get().appointments;
+          if (payload.eventType === 'INSERT') {
+            set({ appointments: [...current, payload.new as Appointment] });
+            toast.info("Novo agendamento recebido!");
+          } else if (payload.eventType === 'UPDATE') {
+            set({ appointments: current.map(a => a.id === payload.new.id ? payload.new as Appointment : a) });
+          } else if (payload.eventType === 'DELETE') {
+            set({ appointments: current.filter(a => a.id !== payload.old.id) });
+          }
+        }
+      )
+      // Listen to Customers
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'customers', filter: `tenant_id=eq.${tenant.id}` },
+        (payload) => {
+           const current = get().customers;
+           if (payload.eventType === 'INSERT') {
+             set({ customers: [...current, payload.new as Customer] });
+           } else if (payload.eventType === 'UPDATE') {
+             set({ customers: current.map(c => c.id === payload.new.id ? payload.new as Customer : c) });
+           }
+        }
+      )
+      // Listen to Orders (Finance)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders', filter: `tenant_id=eq.${tenant.id}` },
+        (payload) => {
+           const current = get().orders;
+           if (payload.eventType === 'INSERT') {
+             set({ orders: [payload.new as Order, ...current] });
+             toast.success("Nova venda registrada!");
+           } else if (payload.eventType === 'UPDATE') {
+             set({ orders: current.map(o => o.id === payload.new.id ? payload.new as Order : o) });
+           }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log("Conectado ao Realtime!");
+        }
+      });
+
+    set({ realtimeSubscription: channel });
+  },
+
+  unsubscribeFromChanges: () => {
+    const { realtimeSubscription } = get();
+    if (realtimeSubscription) {
+      supabase.removeChannel(realtimeSubscription);
+      set({ realtimeSubscription: null });
     }
   },
 
@@ -272,9 +348,8 @@ export const useStore = create<AppState>((set, get) => ({
         if (googleEventId) await deleteGoogleEvent(googleEventId);
         throw error;
       }
-
-      await get().fetchData();
-      if (get().googleConnected) await get().syncGoogleEvents();
+      
+      // Realtime will handle the state update
     } catch (error: any) {
       console.error(error);
       throw error;
@@ -301,9 +376,7 @@ export const useStore = create<AppState>((set, get) => ({
 
     const { error } = await supabase.from('appointments').update(updates).eq('id', id);
     if (error) throw error;
-
-    await get().fetchData();
-    if (get().googleConnected) await get().syncGoogleEvents();
+    // Realtime will handle the state update
   },
 
   updateAppointmentStatus: async (id, status) => {
@@ -316,18 +389,12 @@ export const useStore = create<AppState>((set, get) => ({
         await deleteGoogleEvent(apt.google_event_id);
       }
     }
-
-    set(state => ({
-      appointments: state.appointments.map(a => a.id === id ? { ...a, status } : a)
-    }));
-    
-    if (get().googleConnected) await get().syncGoogleEvents();
+    // Realtime will handle the state update
   },
 
   addCustomer: async (customer) => {
     const { error } = await supabase.from('customers').insert([customer]);
     if (error) throw error;
-    await get().fetchData();
   },
   
   addService: async (service) => {
@@ -386,19 +453,17 @@ export const useStore = create<AppState>((set, get) => ({
 
     const { error: itemsError } = await supabase.from('order_items').insert(itemsWithOrderId);
     if (itemsError) throw itemsError;
-
-    await get().fetchData();
+    
+    // Realtime will handle order update
   },
 
   addCampaign: async (campaign) => {
-    // If table doesn't exist, we might fail here, but we can try-catch or use local state for MVP
     try {
       const { error } = await supabase.from('campaigns').insert([campaign]);
       if (error) throw error;
       await get().fetchData();
     } catch (e) {
       console.error("Failed to save campaign", e);
-      // Fallback for MVP if table missing: just update local state to show it works
       const newCamp = { ...campaign, id: Math.random().toString(), created_at: new Date().toISOString() } as Campaign;
       set(state => ({ campaigns: [newCamp, ...state.campaigns] }));
       toast.warning("Campanha salva localmente (banco de dados pendente).");
