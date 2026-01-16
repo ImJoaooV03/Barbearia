@@ -9,8 +9,7 @@ import {
   AreaChart, Area, PieChart, Pie, Cell, Legend 
 } from 'recharts';
 import { Download, Calendar as CalendarIcon, DollarSign, Users, TrendingUp, AlertCircle } from 'lucide-react';
-import { format, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isWithinInterval, parseISO, startOfYear, endOfYear } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isWithinInterval, startOfYear, endOfYear } from 'date-fns';
 import { toast } from 'sonner';
 
 // Cores do Tema (Gold & Variations)
@@ -19,7 +18,7 @@ const COLORS = ['#d48f18', '#e4bd5d', '#b86e12', '#7a3e14', '#3a1a08'];
 type TimeRange = 'today' | 'week' | 'month' | 'year' | 'all';
 
 export default function Reports() {
-  const { orders, appointments, services, professionals, customers, tenant } = useStore();
+  const { orders, appointments, services, professionals, customers } = useStore();
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
 
   // --- Lógica de Filtragem ---
@@ -246,7 +245,7 @@ export default function Reports() {
                       <Tooltip 
                         contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '8px', color: '#fff' }}
                         itemStyle={{ color: '#d48f18' }}
-                        formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Faturamento']}
+                        formatter={(value: any) => [`R$ ${Number(value).toFixed(2)}`, 'Faturamento']}
                       />
                       <Area type="monotone" dataKey="value" stroke="#d48f18" fillOpacity={1} fill="url(#colorRevenue)" />
                     </AreaChart>
@@ -335,7 +334,7 @@ export default function Reports() {
                           outerRadius={100}
                           fill="#8884d8"
                           dataKey="value"
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                         >
                           {paymentData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
