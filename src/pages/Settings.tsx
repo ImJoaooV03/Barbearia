@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Copy, ExternalLink, Calendar, CheckCircle2, LogOut, Settings2, ChevronDown, ChevronUp, HelpCircle, AlertTriangle } from 'lucide-react';
+import { Copy, ExternalLink, Calendar, CheckCircle2, LogOut, Settings2, ChevronDown, ChevronUp, HelpCircle, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { isGoogleConfigured, initGoogleAPI } from '@/lib/googleCalendar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -271,16 +271,16 @@ export default function Settings() {
               <div className="bg-yellow-500/10 border border-yellow-500/20 p-3 rounded-md text-sm text-yellow-500 flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
                 <div>
-                  <strong>Importante:</strong> Se você ver o erro "redirect_uri_mismatch", significa que você precisa adicionar a URL abaixo no painel do Google.
+                  <strong>Atenção:</strong> Configure as chaves abaixo para habilitar a integração.
                 </div>
               </div>
 
               <Accordion type="single" collapsible className="w-full border rounded-md bg-background">
-                <AccordionItem value="guide" className="border-none">
+                <AccordionItem value="guide" className="border-b">
                   <AccordionTrigger className="px-4 py-2 text-sm hover:no-underline">
                     <span className="flex items-center gap-2 text-primary">
                       <HelpCircle className="w-4 h-4" /> 
-                      Passo a passo: Configurar URL Autorizada
+                      Passo 1: Configurar URL Autorizada (Erro redirect_uri)
                     </span>
                   </AccordionTrigger>
                   <AccordionContent className="px-4 pb-4 text-muted-foreground space-y-3">
@@ -297,8 +297,28 @@ export default function Settings() {
                         <Copy className="w-4 h-4" />
                       </Button>
                     </div>
-                    <p className="text-xs text-yellow-500 mt-1">
-                      * Não coloque a barra "/" no final. Tem que ser exato.
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="verification" className="border-none">
+                  <AccordionTrigger className="px-4 py-2 text-sm hover:no-underline">
+                    <span className="flex items-center gap-2 text-red-500">
+                      <ShieldAlert className="w-4 h-4" /> 
+                      Passo 2: Erro "Acesso Bloqueado / App em Teste"
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4 text-muted-foreground space-y-3">
+                    <p className="text-xs sm:text-sm">
+                      Se você viu uma tela preta dizendo <strong>"Acesso bloqueado: o app está em fase de testes"</strong>, siga isto:
+                    </p>
+                    <ol className="list-decimal list-inside space-y-2 text-xs sm:text-sm">
+                      <li>No Google Cloud Console, vá em <strong>"Tela de permissão OAuth"</strong> (OAuth consent screen).</li>
+                      <li>Role até <strong>"Usuários de teste"</strong> (Test users).</li>
+                      <li>Clique em <strong>"+ ADD USERS"</strong> e adicione seu email (ex: joaovicrengel@gmail.com).</li>
+                      <li>Salve e tente conectar novamente.</li>
+                    </ol>
+                    <p className="text-xs text-zinc-400 mt-2 italic">
+                      Alternativa: Clique em "PUBLISH APP" para tornar o app público (pode exigir verificação do Google).
                     </p>
                   </AccordionContent>
                 </AccordionItem>
