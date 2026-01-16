@@ -12,7 +12,9 @@ import { toast } from 'sonner';
 export default function Customers() {
   const { customers, addCustomer, tenant } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
+  
+  // Create State
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newCustomer, setNewCustomer] = useState({
     name: '',
     phone: '',
@@ -35,7 +37,7 @@ export default function Customers() {
         email: newCustomer.email,
         marketing_consent: true
       });
-      setIsOpen(false);
+      setIsCreateOpen(false);
       setNewCustomer({ name: '', phone: '', email: '' });
       toast.success("Cliente cadastrado!");
     } catch (error) {
@@ -48,7 +50,7 @@ export default function Customers() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Clientes</h2>
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
               <Plus className="w-4 h-4 mr-2" /> Novo Cliente
@@ -109,8 +111,8 @@ export default function Customers() {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Telefone</TableHead>
+                <TableHead>Email</TableHead>
                 <TableHead>Visitas</TableHead>
-                <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -130,10 +132,8 @@ export default function Customers() {
                       {customer.name}
                     </TableCell>
                     <TableCell>{customer.phone}</TableCell>
+                    <TableCell>{customer.email || '-'}</TableCell>
                     <TableCell>{customer.total_visits || 0}</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm">Editar</Button>
-                    </TableCell>
                   </TableRow>
                 ))
               )}

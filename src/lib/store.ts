@@ -45,6 +45,8 @@ interface AppState {
   updateAppointmentStatus: (id: string, status: Appointment['status']) => Promise<void>;
   
   addCustomer: (customer: Omit<Customer, 'id' | 'created_at' | 'total_visits'>) => Promise<void>;
+  updateCustomer: (id: string, updates: Partial<Customer>) => Promise<void>;
+  deleteCustomer: (id: string) => Promise<void>;
   
   addService: (service: Omit<Service, 'id' | 'created_at'>) => Promise<void>;
   deleteService: (id: string) => Promise<void>;
@@ -225,6 +227,8 @@ export const useStore = create<AppState>((set, get) => ({
              set({ customers: [...current, payload.new as Customer] });
            } else if (payload.eventType === 'UPDATE') {
              set({ customers: current.map(c => c.id === payload.new.id ? payload.new as Customer : c) });
+           } else if (payload.eventType === 'DELETE') {
+             set({ customers: current.filter(c => c.id !== payload.old.id) });
            }
         }
       )
@@ -348,7 +352,6 @@ export const useStore = create<AppState>((set, get) => ({
         if (googleEventId) await deleteGoogleEvent(googleEventId);
         throw error;
       }
-      
       // Realtime will handle the state update
     } catch (error: any) {
       console.error(error);
@@ -395,6 +398,19 @@ export const useStore = create<AppState>((set, get) => ({
   addCustomer: async (customer) => {
     const { error } = await supabase.from('customers').insert([customer]);
     if (error) throw error;
+    // Realtime handles update
+  },
+
+  updateCustomer: async (id, updates) => {
+    const { error } = await supabase.from('customers').update(updates).eq('id', id);
+    if (error) throw error;
+    // Realtime handles update
+  },
+
+  deleteCustomer: async (id) => {
+    const { error } = await supabase.from('customers').delete().eq('id', id);
+    if (error) throw error;
+    // Realtime handles update
   },
   
   addService: async (service) => {

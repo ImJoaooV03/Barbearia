@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Copy, ExternalLink, Calendar, CheckCircle2, AlertCircle, LogOut, Settings2, ChevronDown, ChevronUp, HelpCircle } from 'lucide-react';
+import { Copy, ExternalLink, Calendar, CheckCircle2, LogOut, Settings2, ChevronDown, ChevronUp, HelpCircle, AlertTriangle } from 'lucide-react';
 import { isGoogleConfigured, initGoogleAPI } from '@/lib/googleCalendar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -28,6 +28,7 @@ export default function Settings() {
   });
 
   const isConfigured = isGoogleConfigured();
+  const currentOrigin = window.location.origin;
 
   useEffect(() => {
     if (isConfigured && !googleConnected) {
@@ -115,9 +116,9 @@ export default function Settings() {
   // New route format
   const publicUrl = `${window.location.origin}/${tenant?.slug}/agendamento`;
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(publicUrl);
-    toast.success("Link copiado para a área de transferência!");
+  const copyLink = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copiado para a área de transferência!");
   };
 
   return (
@@ -127,7 +128,7 @@ export default function Settings() {
         <p className="text-muted-foreground">Gerencie os dados da sua barbearia e preferências.</p>
       </div>
 
-      {/* Dados da Barbearia - Replicating the Image Style */}
+      {/* Dados da Barbearia */}
       <Card>
         <CardHeader>
           <CardTitle>Dados da Barbearia</CardTitle>
@@ -183,7 +184,7 @@ export default function Settings() {
                 </div>
                 <button
                   type="button"
-                  onClick={copyLink}
+                  onClick={() => copyLink(publicUrl)}
                   className="relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-md px-3 py-2 text-sm font-semibold text-foreground ring-1 ring-inset ring-input hover:bg-muted"
                 >
                   <Copy className="-ml-0.5 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -266,8 +267,12 @@ export default function Settings() {
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="p-4 space-y-4 border-t">
-              <div className="text-xs text-muted-foreground bg-yellow-500/10 p-3 rounded border border-yellow-500/20">
-                <strong>Atenção:</strong> Esta área é para configuração técnica. Se você é o dono da barbearia, peça ao suporte as chaves de integração ou insira suas próprias chaves do Google Cloud Console.
+              
+              <div className="bg-yellow-500/10 border border-yellow-500/20 p-3 rounded-md text-sm text-yellow-500 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                <div>
+                  <strong>Importante:</strong> Se você ver o erro "redirect_uri_mismatch", significa que você precisa adicionar a URL abaixo no painel do Google.
+                </div>
               </div>
 
               <Accordion type="single" collapsible className="w-full border rounded-md bg-background">
@@ -275,15 +280,26 @@ export default function Settings() {
                   <AccordionTrigger className="px-4 py-2 text-sm hover:no-underline">
                     <span className="flex items-center gap-2 text-primary">
                       <HelpCircle className="w-4 h-4" /> 
-                      Passo a passo: Como obter as chaves do Google?
+                      Passo a passo: Configurar URL Autorizada
                     </span>
                   </AccordionTrigger>
                   <AccordionContent className="px-4 pb-4 text-muted-foreground space-y-3">
                     <ol className="list-decimal list-inside space-y-2 text-xs sm:text-sm">
-                      <li>Acesse o Google Cloud Console e crie um novo projeto.</li>
-                      <li>Ative a "Google Calendar API".</li>
-                      <li>Crie credenciais OAuth (Web Application) e adicione <code>{window.location.origin}</code> nas origens autorizadas.</li>
+                      <li>Acesse o <a href="https://console.cloud.google.com/apis/credentials" target="_blank" className="underline text-primary">Google Cloud Console</a>.</li>
+                      <li>Clique no seu <strong>ID do Cliente OAuth 2.0</strong>.</li>
+                      <li>Vá até a seção <strong>Origens JavaScript autorizadas</strong>.</li>
+                      <li>Clique em "Adicionar URI" e cole exatamente o link abaixo:</li>
                     </ol>
+                    
+                    <div className="flex gap-2 mt-2">
+                      <Input value={currentOrigin} readOnly className="bg-muted font-mono text-xs" />
+                      <Button size="icon" variant="outline" onClick={() => copyLink(currentOrigin)}>
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-yellow-500 mt-1">
+                      * Não coloque a barra "/" no final. Tem que ser exato.
+                    </p>
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
