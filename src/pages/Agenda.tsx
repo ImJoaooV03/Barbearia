@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Plus, RefreshCw, Check, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, RefreshCw, Check, X, Scissors, Calendar as CalendarIcon, Clock, User } from 'lucide-react';
 import { format, addDays, isSameDay, setHours, setMinutes, addMinutes, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Appointment, AppointmentStatus } from '@/types';
+import { cn } from '@/lib/utils';
 
 export default function Agenda() {
   const { 
@@ -257,7 +258,8 @@ export default function Agenda() {
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label>Cliente</Label>
-                <div className="p-2 border rounded-md bg-muted/50 text-sm">
+                <div className="p-2 border rounded-md bg-muted/50 text-sm flex items-center gap-2">
+                  <User className="w-4 h-4 text-muted-foreground" />
                   {customers.find(c => c.id === selectedApt?.customer_id)?.name}
                 </div>
               </div>
@@ -319,28 +321,28 @@ export default function Agenda() {
         </Dialog>
       </div>
 
-      <div className="flex-1 border rounded-lg bg-card overflow-hidden flex flex-col">
-        <div className="flex border-b">
-          <div className="w-16 flex-shrink-0 border-r bg-muted/30"></div>
+      <div className="flex-1 border rounded-lg bg-card overflow-hidden flex flex-col shadow-sm">
+        <div className="flex border-b bg-muted/30">
+          <div className="w-16 flex-shrink-0 border-r bg-muted/50"></div>
           {professionals.length === 0 ? (
              <div className="flex-1 p-4 text-center text-muted-foreground">Cadastre profissionais para ver a agenda</div>
           ) : (
             professionals.map(prof => (
-              <div key={prof.id} className="flex-1 p-3 flex items-center justify-center gap-2 border-r last:border-r-0 bg-muted/10">
-                <Avatar className="w-8 h-8">
+              <div key={prof.id} className="flex-1 p-3 flex items-center justify-center gap-2 border-r last:border-r-0">
+                <Avatar className="w-8 h-8 ring-2 ring-background">
                   <AvatarImage src={prof.avatar_url} />
-                  <AvatarFallback>{prof.name[0]}</AvatarFallback>
+                  <AvatarFallback className="bg-primary/10 text-primary font-bold">{prof.name[0]}</AvatarFallback>
                 </Avatar>
-                <span className="font-medium text-sm">{prof.name}</span>
+                <span className="font-semibold text-sm">{prof.name}</span>
               </div>
             ))
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto relative">
+        <div className="flex-1 overflow-y-auto relative bg-zinc-950/30">
           {timeSlots.map(hour => (
-            <div key={hour} className="flex min-h-[100px] border-b last:border-b-0">
-              <div className="w-16 flex-shrink-0 border-r flex flex-col items-center justify-start py-2 bg-muted/5 text-xs text-muted-foreground font-medium">
+            <div key={hour} className="flex min-h-[100px] border-b border-border/50 last:border-b-0">
+              <div className="w-16 flex-shrink-0 border-r border-border/50 flex flex-col items-center justify-start py-2 bg-muted/10 text-xs text-muted-foreground font-medium">
                 {String(hour).padStart(2, '0')}:00
               </div>
 
@@ -356,8 +358,9 @@ export default function Agenda() {
                 });
 
                 return (
-                  <div key={prof.id} className="flex-1 border-r last:border-r-0 relative p-1 group">
+                  <div key={prof.id} className="flex-1 border-r border-border/50 last:border-r-0 relative p-1 group hover:bg-white/5 transition-colors">
                     
+                    {/* Google Calendar Events */}
                     {gEvents.map(ge => {
                       const start = parseISO(ge.start.dateTime);
                       const end = parseISO(ge.end.dateTime);
@@ -366,18 +369,22 @@ export default function Agenda() {
                       return (
                         <div
                           key={ge.id}
-                          className="absolute left-1 right-1 rounded-md p-2 text-xs border border-zinc-700 bg-zinc-800/50 text-zinc-400 z-0 pointer-events-none flex flex-col justify-center"
+                          className="absolute left-1 right-1 rounded-md p-2 text-xs border border-zinc-600 bg-zinc-800 text-zinc-100 z-0 pointer-events-none flex flex-col justify-center shadow-sm"
                           style={{
                             top: `${(start.getMinutes() / 60) * 100}%`,
                             height: `${(durationMins / 60) * 100}%`,
                           }}
                         >
-                          <span className="font-bold truncate">Google Calendar</span>
-                          <span className="truncate text-[10px]">{ge.summary}</span>
+                          <div className="flex items-center gap-1.5 mb-0.5 opacity-70">
+                            <CalendarIcon className="w-3 h-3" />
+                            <span className="font-bold truncate text-[10px] uppercase tracking-wider">Google Calendar</span>
+                          </div>
+                          <span className="truncate font-medium text-sm">{ge.summary}</span>
                         </div>
                       )
                     })}
 
+                    {/* Internal Appointments */}
                     {profApts.map(apt => {
                       const service = services.find(s => s.id === apt.service_id);
                       const customer = customers.find(c => c.id === apt.customer_id);
@@ -386,23 +393,38 @@ export default function Agenda() {
                         <div 
                           key={apt.id}
                           onClick={() => openEditAptModal(apt)}
-                          className={`
-                            absolute left-1 right-1 rounded-md p-2 text-xs border shadow-sm cursor-pointer hover:brightness-110 transition-all z-10 flex flex-col justify-center
-                            ${apt.status === 'confirmed' ? 'bg-primary text-primary-foreground border-primary' : 
-                              apt.status === 'finished' ? 'bg-zinc-700 text-zinc-300 border-zinc-600' : 
-                              apt.status === 'in_progress' ? 'bg-purple-600 text-white border-purple-500' :
-                              apt.status === 'requested' ? 'bg-yellow-500 text-yellow-950 border-yellow-600 animate-pulse' :
-                              'bg-secondary text-secondary-foreground border-border'}
-                          `}
+                          className={cn(
+                            "absolute left-1 right-1 rounded-md p-2.5 text-xs border shadow-sm cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all z-10 flex flex-col justify-center gap-0.5",
+                            apt.status === 'confirmed' && "bg-primary text-primary-foreground border-primary/50 shadow-md",
+                            apt.status === 'finished' && "bg-zinc-800 text-zinc-400 border-zinc-700 opacity-80",
+                            apt.status === 'in_progress' && "bg-purple-600 text-white border-purple-500 shadow-purple-500/20 ring-1 ring-purple-400/50",
+                            apt.status === 'waiting' && "bg-blue-600 text-white border-blue-500",
+                            apt.status === 'requested' && "bg-amber-500 text-amber-950 border-amber-600 animate-pulse font-medium",
+                            apt.status === 'cancelled' && "bg-red-950/50 text-red-300 border-red-900/50 opacity-70",
+                            apt.status === 'no_show' && "bg-red-700 text-white border-red-600"
+                          )}
                           style={{
                             top: `${(new Date(apt.start_time).getMinutes() / 60) * 100}%`,
                             height: `${(service?.duration_minutes || 60) / 60 * 100}%`,
                           }}
                         >
-                          <div className="font-bold truncate">{customer?.name}</div>
-                          <div className="truncate opacity-90">{service?.name}</div>
+                          <div className="font-bold truncate text-sm leading-tight flex items-center justify-between">
+                            {customer?.name}
+                            {apt.status === 'confirmed' && <Check className="w-3 h-3 opacity-70" />}
+                          </div>
+                          
+                          <div className="truncate text-[11px] opacity-90 flex items-center gap-1.5 font-medium">
+                            <Scissors className="w-3 h-3" />
+                            {service?.name}
+                          </div>
+
+                          <div className="truncate text-[10px] opacity-70 flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5" />
+                            {format(new Date(apt.start_time), 'HH:mm')} - {format(addMinutes(new Date(apt.start_time), service?.duration_minutes || 30), 'HH:mm')}
+                          </div>
+
                           {apt.google_event_id && (
-                            <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-blue-400 rounded-full" title="Sincronizado com Google" />
+                            <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-blue-400 rounded-full shadow-sm ring-2 ring-black/10" title="Sincronizado com Google" />
                           )}
                         </div>
                       );
